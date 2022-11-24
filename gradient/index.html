@@ -1,0 +1,80 @@
+<html>
+
+    <head>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+
+        <style>
+            .legend span {
+                margin-right: 10px;
+            }
+
+            .gridlines line {
+                stroke: #bbb;
+            }
+
+            .gridlines .domain {
+                stroke: none;
+            }
+
+        </style>
+
+    </head>
+
+    <body>
+        <h3>Exploring D3 HCL Color</h3>
+        <p>Description: move the slider below to change the gradient of the HCL color from d3 library</p>
+        <div>
+            <p>
+                <svg id="square" height="420" width="420"></svg>
+            <div>
+                <input type="range" id="lightness" name="lightness" min="0" max="200" value="80" step="1">
+            </div>
+            <script>
+                list = [];
+
+                for (let i = 0; i < 21; i++) {
+                    let c = 5 * i;
+                    for (let j = 0; j < 21; j++) {
+                        let h = 18 * j;
+                        let pair = {};
+                        pair["c"] = c;
+                        pair["h"] = h;
+                        list.push(pair);
+                    }
+                }
+                console.log(list)
+
+                const svg = d3.select("svg#square");
+                const width = svg.attr("width");
+                const height = svg.attr("height");
+                const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+                const chartWidth = width - margin.left - margin.right;
+                const chartHeight = height - margin.top - margin.bottom;
+
+                // scales
+                const xExtent = d3.extent(list, d => d['h']);
+                const xScale = d3.scaleLinear().domain(xExtent).range([10, chartWidth + 10]);
+                const yExtent = d3.extent(list, d => d['c']);
+                const yScale = d3.scaleLinear().domain(yExtent).range([chartHeight + 10, 10]);
+
+                let rangeInput = document.getElementById("lightness")
+
+                rangeInput.addEventListener('input', function () {
+                    showCircles(this.value);
+                });
+
+                function showCircles(lightness) {
+                    svg.selectAll("circle").data(list)
+                        .join("circle")
+                        .attr("cx", d => xScale(d['h']))
+                        .attr("cy", d => yScale(d['c']))
+                        .attr("r", 10)
+                        .attr("fill", d => d3.hcl(d['h'], d['c'], lightness));
+                }
+                showCircles(80);
+            </script>
+            </p>
+        </div>
+    </body>
+
+</html>

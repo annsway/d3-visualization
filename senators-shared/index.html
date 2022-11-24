@@ -1,0 +1,99 @@
+<html>
+
+    <head>
+        <link href="https://fonts.googleapis.com/css?family=Lato:400,700|Raleway:400,700" rel="stylesheet">
+
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/default.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://d3js.org/topojson.v3.min.js"></script>
+    </head>
+
+    <body>
+        <div>
+            <h3>US Senators shared with voting patterns</h3>
+            <p>Description: US Senators during the 109th congress (2005 to 2007). Each node represents a senator (blue:
+                democrat; red: republican) Edges have been drawn between senators
+                who share similar voting patterns. Senators who almost always disagree will not
+                be connected.</p>
+            <p>
+                <svg id="graph" height="200" width="800"></svg>
+                <script>
+                    // Layer for drawing
+                    const layer = d3.select("#graph").append("g");
+                    const width = d3.select("#graph").attr("width");
+                    const height = d3.select("#graph").attr("height");
+
+                    const requestData = async function () {
+                        // A. Load both datasets 
+                        const nodes = await d3.csv("senate.109.rollcall.nodes.csv");
+                        const edges = await d3.csv("senate.109.rollcall.edges.csv");
+                        const partyScale = d3.scaleOrdinal().domain(["Dem", "Rep", "Ind"]).range(["#4384db", "#de5547", "#dbc63a"]);
+                        console.log("nodes: ", nodes);
+                        console.log("edges: ", edges);
+
+                        // B. Construct Force Simulation Model for Network Diagram 
+                        // Build a simulation for the graph
+                        var sim = d3.forceSimulation()
+                            .nodes(nodes)
+                            .force("edges", d3.forceLink()   // Keep nodes that are connected near each other
+                                .links(edges)           // give the force an array of source/target objects
+                                .id(d => d['icpsr']))
+                            .force("repulse", d3.forceManyBody().strength(-150)) // electrostatic repulsion between all nodes to space them out
+                            .force("y", d3.forceY().y(d => {
+                                return height / 2.0;
+                            }).strength(0.5))
+                            .force("x", d3.forceX().x(d => {
+                                if (d.party === 'Dem') {
+                                    return width * 0.25;
+                                } else if (d.party === 'Rep') {
+                                    return width * 0.75;
+                                } else {
+                                    return 0;
+                                }
+                            }).strength(0.5))
+                            .on("tick", render);
+
+                        // Update the chart for a new tick of the simulation
+                        function render() {
+                            // Edges
+                            let lines = layer.selectAll("line.link").data(edges)
+                                .join(
+                                    enter => enter.append("line")
+                                        .attr("class", "link")
+                                        .attr("stroke", "#333")
+                                )
+                                .attr("x1", d => d.source.x).attr("x2", d => d.target.x)   // Using the pointers d3.forceLink provides to access node x and y coords
+                                .attr("y1", d => d.source.y).attr("y2", d => d.target.y);
+
+                            // Nodes
+                            let circles = layer.selectAll("circle.node").data(nodes)
+                                .join(
+                                    enter => enter.append("circle")
+                                        .attr("class", "node")
+                                        .attr("stroke", "#5A5A5A")
+                                        .attr("stroke-width", "1px")
+                                        .attr("r", 8)
+                                        .attr("cx", 0)
+                                        .attr("cy", 0)
+                                        .attr("fill", d => partyScale(d.party))
+                                )
+                                .attr("transform", d => `translate(${d.x},${d.y})`);
+
+                            console.log("============= inside render()");
+
+                        }
+                        render();
+                    }
+
+                    requestData();
+
+                </script>
+            </p>
+            <p>Data Source: INFO 5100 (Fall 2022) at Cornell University</p>
+
+        </div>
+    </body>
+
+</html>

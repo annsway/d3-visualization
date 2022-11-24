@@ -1,0 +1,152 @@
+<html>
+
+    <head>
+        <link href="https://fonts.googleapis.com/css?family=Lato:400,700|Raleway:400,700" rel="stylesheet">
+
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/default.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://d3js.org/topojson.v3.min.js"></script>
+
+        <style>
+            .zip {
+                stroke: none;
+                fill: none;
+            }
+
+            .zip-outline {
+                stroke: white;
+                stroke-width: 1px;
+                fill: none;
+            }
+
+            .state-outline {
+                stroke: darkgrey;
+                stroke-width: 3px;
+                fill: none;
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <div>
+            <h3>2019 Median Family Income of New York State</h3>
+            <p id="P1">
+                <svg id="map" height="770" width="990" style="margin:20px"></svg>
+                <script id="p1">
+                    const svg = d3.select("svg#map");
+                    const width = svg.attr("width");
+                    const height = svg.attr("height");
+                    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+                    const mapWidth = width - margin.left - margin.right;
+                    const mapHeight = height - margin.top - margin.bottom;
+                    const map = svg.append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                    const requestData = async function () {
+                        // A.
+                        const data = await d3.json("ny_income.topo.json");
+                        console.log(data);
+                        // create variables
+                        let zips = topojson.feature(data, data.objects.zip_codes);
+                        let zipsMesh = topojson.mesh(data, data.objects.zip_codes);
+                        let stateMesh = topojson.mesh(data, data.objects.state);
+                        // create projection 
+                        let projection = d3.geoMercator().fitSize([mapWidth, mapHeight], zips);
+                        let path = d3.geoPath().projection(projection);
+
+                        // B. draw map 
+                        map.selectAll("path.zips").data(zips.features)
+                            .join("path")
+                            .attr("class", "zip")
+                            .attr("d", path);
+
+                        median_income = d3.map(data.objects.zip_codes.geometries, d => d.properties.median_income);
+
+                        const colorScale = d3.scaleQuantile()
+                            .domain(median_income)
+                            .range(["#c5c6d0", "#d1e8ed", "#adc2da", "#8879b3", "#762b80"]);
+
+                        // C. 
+                        let viewport = map.append("g");
+
+                        // add path
+                        viewport.selectAll(".zips").data(zips.features)
+                            .enter()
+                            .append("path")
+                            .attr("stroke", "none")
+                            .attr("fill", d => colorScale(d.properties.median_income))
+                            .attr("d", path);
+                        // zip mesh
+                        viewport.append("path")
+                            .datum(zipsMesh)
+                            .attr("class", "zip-outline")
+                            .attr("d", path);
+                        // zip mesh
+                        viewport.append("path")
+                            .datum(stateMesh)
+                            .attr("class", "state-outline")
+                            .attr("d", path);
+
+                        // D. Mark Cornell belltower with a black circle
+                        const lat_belltower = 42.4476;
+                        const long_belltower = -76.4850;
+                        const position = projection([long_belltower, lat_belltower]);
+
+                        viewport.append("circle")
+                            .attr("cx", position[0])
+                            .attr("cy", position[1])
+                            .attr("r", 5)
+                            .attr("fill", "black");
+
+                        // E. Pan Zoom
+                        let panZoom = d3.zoom()
+                            .scaleExtent([1, 10])
+                            .translateExtent([[-50, -50], [mapWidth + 50, mapHeight + 50]])  // to lock to edges
+                            .on("zoom", mapZoomed);
+
+                        svg.call(panZoom);
+
+                        function mapZoomed(event) {
+                            let transform = event.transform;
+                            // Transform the group object to reflect the zoom action
+                            viewport.attr("transform", transform.toString());
+
+                            // Divide by scale to make sure strokes remain a consistent width during zooming
+                            viewport.select(".zip-outline")
+                                .style("stroke-width", 1 / transform.k);
+
+                        }
+
+                        // F. color scale legend
+                        // Get the thresholds
+                        let thresholds = [];
+                        if (colorScale.hasOwnProperty('thresholds')) {
+                            thresholds = colorScale.thresholds()
+                        } else {
+                            thresholds = colorScale.quantiles()
+                        }
+                        console.log(thresholds);
+
+                        // make an empty <ul> element 
+                        let list = d3.select("#list");
+                        console.log(list);
+
+                        list.selectAll("li").data(thresholds)
+                            .join("li")
+                            .text(d => "$ " + d.toFixed(2));
+
+                    }
+                    requestData();
+                </script>
+            <p>Income Thresholds: </p>
+            <ul id="list"></ul>
+            </p>
+            <p>Data Source: <a href="https://www.census.gov/data/datasets.html">US Census Data</a></p>
+
+        </div>
+    </body>
+
+</html>

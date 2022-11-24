@@ -1,0 +1,89 @@
+<html>
+
+    <head>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+
+        <style>
+            .legend span {
+                margin-right: 10px;
+            }
+
+            .gridlines line {
+                stroke: #bbb;
+            }
+
+            .gridlines .domain {
+                stroke: none;
+            }
+
+        </style>
+
+    </head>
+
+    <body>
+        <h3>NCAA Basketball Games Shot Attempts Heatmap (2018-2019 & 2020-2021 seasons)</h3>
+        <p>Description:
+            Areas of high activity in the game are colored yellow and areas of low activity are black.
+
+            All the shot attempts made by players at different locations in the court were added up. A shot attempt
+            refers to when a player throws the ball attempting to get it into the opposing team's basket to score points
+            (where and when they can throw is influenced by rules and team strategy).
+
+            You can see the basketball hoop in the middle bottom and an arc created by the 3 point line that dictates
+            where players can throw the ball to earn more points.
+        </p>
+        <div>
+            <p>
+                <svg id="heatmap" height="500" width="500"></svg>
+                <script>
+                    var dataset;
+                    d3.csv('./NCAA_shots.csv').then((data) => {
+                        // console.log(data);
+                        data.forEach((d, i) => {
+                            d['x'] *= 5;
+                            d['y'] *= 5;
+                            d['width'] *= 5;
+                            d['height'] *= 5;
+                        })
+                        const svg = d3.select("svg#heatmap");
+                        const width = svg.attr('width');
+                        const height = svg.attr('height');
+                        const margin = { top: 10, right: 10, bottom: 50, left: 50 };
+                        const chartWidth = width - margin.left - margin.right;
+                        const chartHeight = height - margin.top - margin.bottom;
+
+                        // svg
+
+                        const attemptExtent = d3.extent(data, d => d['log_attempt']);
+
+                        let attemptScale = d3.scaleSequential()
+                            .domain(attemptExtent)
+                            .interpolator(d3.interpolateViridis);
+
+                        let chartArea = svg.append("g").attr("id", "points")
+                            .attr("transform", `translate(${margin.left},${margin.top})`)
+                            ;
+
+                        svg.style("background", 'black');
+                        chartArea.selectAll("rect").data(data)
+                            .join("rect")
+                            .attr("x", d => d['x'])
+                            .attr("y", d => d['y'])
+                            .attr("fill", d => attemptScale(d['log_attempt']))   // using attr here, style would work too
+                            .attr("width", 5)
+                            .attr("height", 4)
+                            ;
+                    })
+
+                </script>
+            </p>
+            <p>Recreated from: <a href="https://minimaxir.com/2018/03/basketball-shots/">Max
+                    Woolf</a></p>
+            <p>Data Source: <a href="https://github.com/lbenz730/ncaahoopR">NCAA Basketball Games (2018-2019 and
+                    2020-2021 seasons)
+                </a></p>
+
+        </div>
+    </body>
+
+</html>
