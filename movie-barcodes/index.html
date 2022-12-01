@@ -1,0 +1,62 @@
+<html>
+
+    <head>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+    </head>
+
+    <body>
+        <h3>Movie Barcodes Visualization</h3>
+        <p>Description: A series of movie barcodes using D3 <b>canvas</b> elements. A barcode uses vertical lines to
+            show
+            the average color of individual frames of a film, helping to reveal how color is used by
+            cinematographers to give flavor to a film.
+        </p>
+        <!-- B. create a <div> to contain all the barcodes -->
+        <div id="barcodes">
+        </div>
+        <p>Recreated from: <a href="https://moviebarcode.tumblr.com/">Online Visualization Blogs</a></p>
+        <p>Data Source: Cornell Info 5100
+            </a></p>
+        <script>
+            // Container that will hold the canvas and SVG overlay
+            const container = d3.select("#barcodes");
+
+            const draw = async () => {
+                // A. load the data
+                let data = await d3.json("./movie_barcodes.json");
+                console.log(data);
+
+                // E. 
+                data.forEach(d => {
+                    // C. iterate each movie object
+                    let movie_div = container.append("div")
+                        .attr("class", "movie");
+
+                    // D. for each of the movies, create a new <div> element to hold that movie’s title and canvas.
+                    movie_div
+                        .append("h5")
+                        .text(d['title']);
+
+                    let canvas = movie_div
+                        .append("canvas")
+                        .attr("width", 800)
+                        .attr("height", 100);
+
+                    const ctx = canvas.node().getContext("2d");
+
+                    d["bars"].forEach(bar => {
+                        ctx.beginPath();
+                        ctx.lineWidth = "5";
+                        ctx.strokeStyle = bar['color']; // rectangle color
+                        ctx.moveTo(bar['x'], 0);
+                        ctx.lineTo(bar['x'] + 0.5, 100);
+                        ctx.stroke();
+                    })
+                });
+
+            }
+            draw();
+        </script>
+    </body>
+
+</html>
