@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            font-family: sans-serif;
+            background-color: #222;
+            color: white;
+        }
+        .graph{
+            position: relative;
+            
+        }
+
+        .heading{
+            text-align: center;
+            margin: auto;
+            width: 72%;
+        }
+    </style>
+    <style>
+
+        svg {
+            fill: white;
+        }
+        .infoBox{
+           display: none;
+            /* position: absolute; */
+            margin: auto;
+            top: 25px;
+            width: 200px;
+            height: 40px;
+            border: 1px solid black;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 3px 3px #ccc;
+            background-color: rgba(164, 150, 150, 0.344);
+            font-size: .8em;
+        }
+        #muiltLine{
+            position:absolute;
+            left: 15vw;
+            top: 5vh;
+            width: 70vw;
+            height: 70vh;
+            /* border: 2px solid black;
+            border-radius: 10px; */
+            display: block;
+
+        }
+        .clickType{
+            width: 70vw;
+            height: 5vh;
+            /* display: inline; */
+            position: absolute;
+            top: 80vh;
+            left: 20vw;
+            font-size: .8em;
+            
+        }
+        .type{
+            display: inline;
+            margin-left: 40px;
+            padding: 0;
+           
+            height: 20px;
+            border-radius: 3px;
+          
+        }
+        .type:hover{
+           cursor:pointer;
+           background-color: rgb(101, 116, 232);
+        }
+        .Netflix
+        {
+            background-color:  rgb(27, 158, 119);
+        }
+        .DisneyPlus{
+            
+            background-color:rgb(217, 95, 2);
+        }
+        .Hulu{
+            background-color: rgb(117, 112, 179);
+        }
+        .AmazonPrimeVideo{
+            background-color: rgb(231, 41, 138);
+        }
+    </style>
+</head>
+<body>
+    <div class="heading">
+        <h1>Chapter 01</h1>
+        <h2>Popularity & Tendency Across Platforms</h2>
+        <p>When a user wants to choose a platform to watch movies or TV shows, the user can first check the popularity of each platform by looking at the number of subscribers and learn about the trend of the past few years according to the changes in subscribers.</p>
+        <p>The line chart represents the amount of subscribers of four platforms from 2020 to 2022 quarterly. The four lines of different colors compare the overall number of users through platforms and the tendency of user changes.</p>
+    <a href="page2.html"  style="color: white">Next Chapter</a>
+    </div>
+    
+    <hr>
+
+    <div class="graph">  
+        <div id="muiltLine"></div>
+        <div class="clickType">
+            <div class="Netflix type">Netflix</div>
+            <div class="DisneyPlus type">DisneyPlus</div>
+            <div class="Hulu type">Hulu</div>
+            <div class="AmazonPrimeVideo type">AmazonPrimeVideo</div>
+        </div>
+        <div class="infoBox"></div>
+    </div>
+    
+</body>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+
+let margin = {top: 60, right: 80, bottom: 30, left: 80},
+    w=document.getElementById('muiltLine').clientWidth
+    h=document.getElementById('muiltLine').clientHeight
+    width = w - margin.left - margin.right,
+    height = h - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+let svg = d3.select("#muiltLine")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",`translate(${margin.left},${margin.top})`);
+
+
+d3.csv("data/user_data.csv").then(function(data) {
+
+    
+    let dataHeaders = ["Netflix","DisneyPlus","Hulu","AmazonPrimeVideo"]
+
+    
+    let dataMaped = dataHeaders.map( function(dataItems) { 
+      return {
+        name: dataItems,
+        values: data.map(function(d) {
+           
+          return {Platform: d.Platform, value: +d[dataItems]};
+         
+        })
+      };
+    });
+    dataMaped[3].values=dataMaped[3].values.filter(d=>d.value!=0)
+
+   
+    
+    let myColor = d3.scaleOrdinal()
+      .domain(dataHeaders)
+      .range(d3.schemeDark2);
+
+   
+    let xScale = d3.scaleBand()
+      .domain(data.map(d=>d.Platform))
+      .range([ 0, width ]);
+    svg.append("g")
+      .attr("transform", `translate(0, ${height})`)
+      .call(d3.axisBottom(xScale).tickSize(-height))
+      .style('opacity',.6);
+
+      
+      
+     
+     
+    yArray=[]
+    dataMaped.forEach(d=>{
+        d.values.forEach(e=>{
+           
+             yArray.push(e.value)
+
+        })
+    })
+  
+    
+    let yScale = d3.scaleLinear()
+      .domain( d3.extent(yArray))
+      .range([ height, 0 ]);
+    svg.append("g")
+      .call(d3.axisLeft(yScale).tickSize(-width))
+      .style('opacity',.6);
+
+    
+      d3.selectAll('.tick')
+        .select('line')
+        .attr("stroke-dasharray","3 2")
+        .style('opacity',.4)
+    
+        console.log(xScale.bandwidth())
+    let line = d3.line()
+      .x(d => {return xScale(d.Platform)+xScale.bandwidth()*.5})
+      .y(d => yScale(+d.value))
+
+//draw line 
+let lineDot=svg.selectAll(".muiltLines")
+        .data(dataMaped)
+        .join('g')
+        .attr('id',d=>d.name)
+        .attr('class','muiltLines')
+
+    lineDot
+        .append("path")
+        .attr("d", d => line(d.values))
+        .attr("stroke", d => myColor(d.name))
+        .style("stroke-width", 2)
+        .style("fill", "none")
+
+
+        
+    lineDot.append('g')
+        .style("fill", d => myColor(d.name))
+        .selectAll(".dot")
+        .data(d => d.values)
+        .join("circle")
+        .attr("cx", d => {return xScale(d.Platform)+xScale.bandwidth()*.5})
+        .attr("cy", d => yScale(d.value))
+        .attr("r", 5)
+        .attr('class','dot')
+        .attr("stroke", "white")
+        .on('mouseover',function(d){
+            d3.select(this).transition().duration(300).attr('r',10)
+            var selected_data = d3.select(this).datum();
+            console.log(selected_data);
+            d3.select('.infoBox')
+                .style('display','block')
+                .html(`Subscriber: ${selected_data.value} million`)
+
+        })
+        .on('mouseout',function(d){
+            d3.select(this).attr('r',5)
+            d3.select('.infoBox')
+                .style('display','none')
+        })
+
+    svg
+    .append('g')
+    .attr('transform',`translate(${-40},${height*.5})`)
+    .append('text')
+    .attr('transform',`rotate(-90)`)
+    .text('Number of Subscribers')
+
+    svg
+    .append('g')
+    .attr('transform',`translate(${-20},-10)`)
+    .append('text')
+    .text('million')
+    svg
+    .append('g')
+    .attr('transform',`translate(${width+10},${height+10})`)
+    .append('text')
+    .text('time')
+
+
+
+   let legand=svg.selectAll('.legand')
+                .data(dataHeaders)
+                .join('g')
+
+    legand.append('rect')
+        .attr('x',width*.8)
+        .attr('y',(d,i)=>40+i*25)
+        .attr('width','10px')
+        .attr('height','10px')
+        .style('fill',d=>myColor(d))
+
+    legand.append('text')
+        .attr('x',width*.8+20)
+        .attr('y',(d,i)=>40+i*28)
+        .text(d=>d)
+
+        //click and highlight
+    d3.selectAll('.type')
+        .on('click',function(d){
+        d3.selectAll('.muiltLines').style('opacity',.2)
+        let currrentId=d3.select(this).html()
+            d3.select('#'+currrentId).style('opacity',1)
+
+        })
+        .on('mouseleave',function(d){
+            d3.selectAll('.muiltLines').style('opacity',1)
+        })
+
+})//end of d3.csv
+</script>
+</html>

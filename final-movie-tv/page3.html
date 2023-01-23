@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Movies & TV Shows Visualization</title>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://d3js.org/topojson.v3.min.js"></script>
+        <style>
+            .heading {
+                text-align: center;
+                margin: auto;
+                width: 72%;
+            }
+
+            body {
+                font-family: sans-serif;
+                counter-reset: circled-number;
+                background-color: #222;
+                color: #f1f1f1;
+            }
+
+            h2 {
+                text-align: center;
+                margin-bottom: 20px;
+                color: #f1f1f1;
+                font-size: 24px;
+            }
+
+            form {
+                width: 100%;
+                margin: auto;
+                background-color: #333;
+                padding: 10px;
+            }
+
+            label {
+                display: block;
+                margin-bottom: 10px;
+                font-size: 16px;
+            }
+
+            input[type="radio"] {
+                margin-right: 10px;
+            }
+
+            select {
+                margin-right: 10px;
+                padding: 5px;
+                font-size: 14px;
+                background-color: steelblue;
+                color: #f1f1f1;
+                border-radius: 6px;
+                border: none;
+            }
+
+            input :hover {
+                background-color: #333;
+            }
+
+            /* Cards for platforms */
+            /* Ref: https://www.w3schools.com/howto/howto_css_column_cards.asp */
+            .card:hover {
+                box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+            }
+
+            .pltm_container {
+                padding: 4px 16px;
+            }
+
+            /* Float four columns side by side */
+            .column {
+                float: left;
+                width: 25%;
+                padding: 10 10px;
+            }
+
+            /* Remove extra left and right margins, due to padding in columns */
+            .row {
+                margin: 0 -5px;
+                padding: 10 10px;
+            }
+
+            /* Clear floats after the columns */
+            .row:after {
+                content: "";
+                display: table;
+                clear: both;
+            }
+
+            .card {
+                box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.5);
+
+                padding: 16px;
+                text-align: center;
+                background-color: #333;
+            }
+
+            /* Responsive columns - one column layout (vertical) on small screens */
+            @media screen and (max-width: 600px) {
+                .column {
+                    width: 100%;
+                    display: block;
+                    margin-bottom: 20px;
+                }
+            }
+
+            img {
+                width: 20%;
+            }
+
+            .circled-number {
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background-color: steelblue;
+                text-align: center;
+                /* Style the number */
+                font-size: 12px;
+                font-weight: bold;
+                color: #fff;
+            }
+
+            /* Increment the counter for each cur_button with the class "circled-number" */
+            .circled-number:before {
+                counter-increment: circled-number;
+                content: counter(circled-number);
+                display: inline-block;
+                line-height: 20px;
+                padding: 0 5px;
+            }
+
+            /* Type icons */
+            .icon-card {
+                align-items: center;
+                padding: 16px;
+                text-align: center;
+            }
+
+            .icon-card:hover {
+                box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+            }
+
+            .icon {
+                padding: 16px;
+                background-color: #333;
+            }
+
+            .icon img {
+                width: 80px;
+                height: 64px;
+                margin: auto;
+            }
+
+            .content {
+                padding: 16px;
+            }
+
+            .icon-column {
+                float: left;
+                width: 15%;
+                padding: 10 10px;
+            }
+
+            /* style category buttons */
+            #button-list {
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            #button-list button {
+                padding: 6px;
+                margin: 4px;
+                background-color: steelblue;
+                color: #fff;
+                font-size: 12px;
+                border: none;
+                cursor: pointer;
+                border-radius: 6px;
+            }
+
+            .selectTab {
+                padding: 6px;
+                margin: 4px;
+                background-color: steelblue;
+                color: #fff;
+                font-size: 12px;
+                border: none;
+                cursor: pointer;
+                border-radius: 6px;
+            }
+
+            /* release year bar chart */
+
+            .xaxis line {
+                stroke: white;
+
+            }
+
+            .xaxis path {
+                stroke: white;
+            }
+
+            .yaxis line {
+                stroke: white;
+            }
+
+            .yaxis path {
+                stroke: white;
+            }
+
+            .yaxis text {
+                fill: white;
+            }
+
+            .button1 {
+                background-color: orange;
+                border-radius: 12px;
+                display: block;
+            }
+
+            .button1:hover {
+                background-color: lightyellow;
+            }
+
+            .button2 {
+                background-color: greenyellow;
+                border-radius: 12px;
+                display: block;
+            }
+
+            .button2:hover {
+                background-color: lightyellow;
+            }
+
+            .button3 {
+                background-color: red;
+                border-radius: 12px;
+                display: block;
+            }
+
+            .button3:hover {
+                background-color: lightyellow;
+            }
+
+            .button4 {
+                background-color: skyblue;
+                border-radius: 12px;
+                display: block;
+            }
+
+            .button4:hover {
+                background-color: lightyellow;
+            }
+
+            /* Map */
+            svg {
+                display: block;
+                margin: auto;
+            }
+
+            .country {
+                fill: none;
+            }
+
+            .outline {
+                fill: none;
+                stroke: gray;
+                stroke-width: 1px;
+            }
+
+            .tooltip {
+                inline-size: 120px;
+                overflow-wrap: break-word;
+                overflow: hidden;
+            }
+
+            .tooltip rect {
+                fill: rgba(255, 255, 255, 0.1);
+                stroke: lightgray;
+                stroke-width: 1px;
+            }
+
+            .tooltip text {
+                fill: white;
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <div class="heading">
+            <h1>Chapter 03</h1>
+            <h2>Into The Data of A Specific Platform</h2>
+            <p>Finally, users can further inspect the individual platform by applying a filter (inside a "quiz" format)
+                to see the data visualization. Users would first apply a filter by choosing a specific platform, type
+                (tv or movie) and year. Then, after clicking the "refresh" button, users can see the list of genres from
+                this specific platform, the number of works across years, and the geographical distribution of the
+                works.</p>
+            <a href="page2.html" style="color: white">Prev Chapter</a>
+        </div>
+        <hr>
+        <label><span class="circled-number"></span>
+            Select a platfrom
+        </label>
+        <div class="row">
+            <div class="column">
+                <div class="card" id="amazon">
+                    <img src="img/amazon.png" alt="pic-amazon">
+                    <div class="pltm_container">
+                        <h4><b>Amazon Prime</b></h4>
+                        <p>Open up a world of entertainment.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="card" id="disney">
+                    <img src="img/disney.png" alt="pic-disney">
+                    <div class="pltm_container">
+                        <h4><b>Disney+</b></h4>
+                        <p>Home for your favorite movies & shows.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="card" id="hulu">
+                    <img src="img/hulu.png" alt="pic-hulu">
+                    <div class="pltm_container">
+                        <h4><b>Hulu</b></h4>
+                        <p>Get endless shows and movies you love.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="card" id="netflix">
+                    <img src="img/netflix.png" alt="pic-netflix">
+                    <div class="pltm_container">
+                        <h4><b>Netflix</b></h4>
+                        <p>Watch anywhere. Cancel anytime.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br>
+        <h3 id="pltm-title"></h3>
+        <br>
+        <label><span class="circled-number"></span>
+            Select a type
+        </label>
+        <div class="row">
+            <div class="icon-column">
+                <div class="icon-card" id="tv">
+                    <div class="icon">
+                        <img src="img/tv-icon.png" alt="TV icon">
+                        <div class="content">
+                            <button class="selectTab" data-tab="tabMovie">TV Shows</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="icon-column">
+                <div class="icon-card" id="movie">
+                    <div class="icon">
+                        <img src="img/movie-icon.png" alt="Movie icon">
+                        <div class="content">
+                            <button class="selectTab" data-tab="tabTV">Movies</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br>
+        <h3 id="type-title"></h3>
+        <br>
+        <br>
+        <div>
+            <span class="circled-number"></span>
+            Select release years: from
+            <select id="startYearDropDown"></select>to
+            <select id="endYearDropDown"></select>
+        </div>
+        <br>
+        <!-- Data Visualization after filtering -->
+        <div><button style="background-color: slateblue; font-size: 24px; color: white; width: 100%; padding: 16px;"
+                id="showMe">Refresh</button></div>
+        <hr>
+        <div>
+            <h2 id="filtered-genre-title"></h2>
+            <div id="button-list"></div>
+        </div>
+
+        <h2>Release Count vs Release Year</h2>
+        <svg id="dynamicbar" height="500" width="1000"></svg>
+        <h2>Release Count vs Country</h2>
+        <svg id="geograph" height="500" width="800"></svg>
+
+        <script>
+            // define the data
+            let cat_selected = new Set();
+            let full_categories = [];
+            let start_year_selected = 1925;
+            let end_year_selected = 2021;
+            let pltm_selected = "";
+            let type_selected = "";
+            let full_data = [];
+
+            let world_map = [];
+
+            const requestData = async function () {
+                // Load the full data set
+                full_data = await d3.csv("data/summary_data_country_new.csv", d3.autoType);
+                // console.log(full_data);
+
+                // load world map
+                world_map = await d3.json('data/world_map.json');
+                // console.log(world_map);
+
+                let categories_data = await d3.csv("data/categories.csv", d3.autoType);
+                categories_data.forEach(cur_button => {
+                    full_categories.push(cur_button["listed_in"]);
+                });
+
+                full_categories.sort();
+                render_categories(full_categories);
+
+                let years_data = await d3.csv("data/summary_data_country_new_unique_year.csv", d3.autoType);
+                let years = [];
+                years_data.forEach(d => {
+                    years.push(d["release_year"]);
+                });
+                render_years(years);
+
+                render_pltm();
+                render_type();
+                // render_rating();
+
+                document.getElementById("showMe").addEventListener('click', () => {
+                    // console.log("showMe clicked");
+                    render_filtered_viz();
+                })
+
+                render_filtered_viz();
+            }
+
+            requestData();
+
+            // 1. Select a platfrom
+            const render_pltm = function () {
+                // 1. Select a platform 
+                // get a list of all .card on the page
+                var cards = document.querySelectorAll('.card');
+
+                // attach the event listener to each .card
+                cards.forEach(function (card) {
+                    card.addEventListener('click', () => {
+                        pltm_selected = card.id;
+                        console.log("pltm_selected: ", pltm_selected);
+                        // show pltm selected
+                        document.getElementById("pltm-title").innerHTML = "Platform selected: " + pltm_selected;
+                        document.getElementById("pltm-title").style.color = "#f1f1f1";
+                    });
+                });
+            }
+
+            // 2. Select a type
+            const render_type = function () {
+                var icon_cards = document.querySelectorAll('.icon-card');
+                icon_cards.forEach(function (card) {
+                    card.addEventListener('click', () => {
+                        type_selected = card.id;
+                        if (type_selected == 'tv') {
+                            type_selected = 'tv show';
+                        }
+                        console.log("type_selected: ", type_selected);
+                        // show pltm selected
+                        document.getElementById("type-title").innerHTML = "Type selected: " + type_selected;
+                        document.getElementById("type-title").style.color = "#f1f1f1";
+                    });
+                });
+            }
+
+            // 3. Select release years 
+            const render_years = function (data) {
+                var min_year = Math.min(...data);
+                var max_year = Math.max(...data);
+
+                console.log(min_year, max_year);
+
+                const startYearDropDown = document.getElementById("startYearDropDown");
+                const endYearDropDown = document.getElementById("endYearDropDown");
+
+                for (let i = min_year; i <= max_year; i++) {
+                    let option = document.createElement("option");
+                    option.setAttribute('value', i);
+                    option.setAttribute('selected', false);
+
+                    let optionText = document.createTextNode(i);
+                    option.appendChild(optionText);
+
+                    startYearDropDown.appendChild(option);
+                }
+
+                for (let i = max_year; i >= min_year; i--) {
+                    let option = document.createElement("option");
+                    option.setAttribute('value', i);
+
+                    let optionText = document.createTextNode(i);
+                    option.appendChild(optionText);
+
+                    endYearDropDown.appendChild(option);
+                }
+
+                document.getElementById("startYearDropDown").addEventListener("change", function (e) {
+                    start_year_selected = this.value;
+                    console.log("start year selected:", this.value);
+                });
+
+                document.getElementById("endYearDropDown").addEventListener("change", function (e) {
+                    end_year_selected = this.value;
+                    console.log("end year selected:", this.value);
+                });
+            }
+
+            // Upate genres (categories)
+            function render_categories(data) {
+                var bttn_container = d3.select("#button-list");
+                var genre_title = "All genres for " + pltm_selected + " " + type_selected + " from " + start_year_selected + " to " + end_year_selected + ":";
+                if (pltm_selected == "" && type_selected == "") {
+                    genre_title = "All genres from " + start_year_selected + " to " + end_year_selected + ":";
+                }
+                d3.selectAll('#filtered-genre-title').text(genre_title);
+                console.log("genre_title: ", genre_title);
+                bttn_container.selectAll(".cat_button").remove();
+                bttn_container.selectAll("button")
+                    .data(data)
+                    .enter()
+                    .append("button")
+                    .text((d) => { return d; })
+                    .attr('id', (d, i) => { return 'button-' + i; })
+                    .attr("class", "cat_button");
+            }
+
+            /**************************************
+             *** Data Visualization after filtering 
+            **************************************/
+
+            const year_bar_chart = function (yeardata) {
+
+                // viz
+                const svg = d3.select("svg#dynamicbar");
+                // reset 
+                svg.selectAll('*').remove();
+
+                // prepare data for viz 
+                let countByYear = [];
+                yeardata.forEach((row) => {
+                    if (countByYear[row['release_year']] === undefined) {
+                        countByYear[row['release_year']] = 0
+                    }
+                    countByYear[row['release_year']] += 1;
+                })
+
+                // Create list of objects to store count_by_year
+                const keys = Object.keys(countByYear);
+
+                const countList = keys.map(key => ({ release_year: key, count: countByYear[key] }));
+
+                // count by year 
+                const year = [...new Set(countList.map((d) => d.release_year))];
+
+                const width = svg.attr("width");
+                const height = svg.attr("height");
+                const margin = { top: 15, right: 15, bottom: 50, left: 50 };
+                const chartWidth = width - margin.left - margin.right;
+                const chartHeight = height - margin.top - margin.bottom;
+
+                let annotations = svg.append("g")
+                    .attr("id", "annotations");
+
+                let chartArea = svg.append("g")
+                    .attr("id", "points")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+                const hScale = d3.scaleLinear().domain([0, d3.max(countList, d => d['count']) + 20]).range([chartHeight, 0]);
+                let leftAxis = d3.axisLeft(hScale);
+
+                annotations.append("g")
+                    .attr("class", "yaxis")
+                    .attr("transform", `translate(${margin.left - 10},${margin.top})`)
+                    .call(leftAxis)
+
+                let bottomAxis = d3.axisBottom()
+                let bottomAxisG = annotations.append("g")
+                    .attr("class", "xaxis")
+                    .attr("transform", `translate(${margin.left},${chartHeight + margin.top + 10})`)
+
+                // console.log("yeardata", yeardata)
+
+                function dynamicbarchart() {
+                    const yearScale = d3.scaleBand()
+                        .domain(year)
+                        .range([0, chartWidth])
+                        .padding(0.05);
+                    // format the bottom axis to make year texts clearer
+                    bottomAxis.scale(yearScale)
+                    bottomAxisG.transition()
+                        .call(bottomAxis)
+                        .selectAll("text")
+                        .attr("transform", "rotate(-60)")
+                        .style("text-anchor", "end")
+                        .style("fill", "white");
+
+                    chartArea.selectAll('rect.bar').data(countList, d => d["release_year"])
+                        .join(enter => enter.append('rect')
+                            .attr('class', 'bar')
+                            .attr("fill", "steelblue")
+                            .attr("x", d => yearScale(d.release_year))
+                            .attr("y", d => hScale(d.count))
+                            .attr("height", d => hScale(0) - hScale(d.count))
+                            .attr("width", yearScale.bandwidth())
+                            .attr("opacity", 0)
+                            .on("mouseover", function () {
+                                d3.select(this)
+                                    .attr("fill", "lightblue")
+                            })
+                            .on("mouseout", function () {
+                                d3.select(this)
+                                    .transition()
+                                    .duration(200)
+                                    .attr("fill", "darkcyan")
+                            })
+                            .call(
+                                enter => enter.transition()
+                                    .attr("opacity", 1)
+                            ),
+                            update => update.call(update => update.transition()
+                                .attr("fill", "steelblue")
+                                .attr("x", d => yearScale(d.release_year))
+                                .attr("y", d => hScale(d.count))
+                                .attr("height", d => hScale(0) - hScale(d.count))
+                                .attr("width", yearScale.bandwidth())
+                            ),
+                            exit => exit.call(exit => exit.transition()
+                                .attr("opacity", 0.5)
+                                .remove()))
+                        ;
+                }
+                dynamicbarchart();
+
+            }
+
+
+            const map_viz = function (summaryData) {
+
+                // global var - geograph
+                const geograph = d3.select("#geograph");
+                const geograph_width = geograph.attr("width");
+                const geograph_height = geograph.attr("height");
+                const geograph_margin = { top: 20, right: 20, bottom: 20, left: 20 };
+                const geograph_mapWidth = geograph_width - geograph_margin.left - geograph_margin.right;
+                const geograph_mapHeight = geograph_height - geograph_margin.top - geograph_margin.bottom;
+                const geograph_map = geograph.append("g")
+                    .attr("transform", "translate(" + geograph_margin.left + "," + geograph_margin.top + ")");
+
+                // global var - tooltip                              
+                const tooltip_width = 160;
+                const tooltip_height = 40;
+
+                // global var - annotations
+                let annotations = geograph.append("g").attr("id", "annotations");
+                let bottomAxisMap = d3.axisBottom();
+                // remove previous axis
+                geograph.selectAll(".x-axis").remove();
+                let bottomAxisG = annotations.append("g")
+                    .attr("class", "x-axis")
+                    .attr("transform", `translate(${geograph_margin.left},${geograph_mapHeight + geograph_margin.top})`)
+
+                const main = function () {
+
+                    // remove Antarctica
+                    world_map.objects.countries.geometries.sort((a, b) => d3.ascending(a.properties.name, b.properties.name));
+                    world_map.objects.countries.geometries.splice(4, 1);
+
+                    // topographic features and d3 helpers
+                    var countries = topojson.feature(world_map, world_map.objects.countries);
+                    var countriesMesh = topojson.mesh(world_map, world_map.objects.countries);
+                    const projection = d3.geoNaturalEarth1().fitSize([geograph_mapWidth, geograph_mapHeight], countries);
+                    const path = d3.geoPath().projection(projection);
+
+                    // draw countries and outlines
+                    var countryPath = geograph_map.selectAll("path.country").data(countries.features)
+                        .join("path")
+                        .attr("class", "country")
+                        .attr("note", d => d.id)
+                        .attr("d", path)
+                        .on('mouseover', mouseEntersState)
+                        .on('mouseout', mouseLeavesState);
+
+                    geograph_map.append("path").datum(countriesMesh)
+                        .attr("class", "outline")
+                        .attr("d", path);
+
+                    // helper function to create dataset from summaryData
+                    function getCountryCount() {
+
+                        let countryCount = new Map();
+                        for (let i = 0; i < summaryData.length; i++) {
+                            let country = summaryData[i].country;
+                            let count = summaryData[i].count;
+                            // fix US name
+                            if (country == 'United States') {
+                                country = 'United States of America';
+                            }
+                            if (country == "NA") {
+                                continue;
+                            }
+                            // fill dataset
+                            if (countryCount.has(country)) {
+                                let prevCount = +countryCount.get(country);
+                                countryCount.set(country, count + prevCount);
+                            } else {
+                                countryCount.set(country, count);
+                            }
+                        }
+
+                        return countryCount;
+                    }
+
+                    var countryCount = getCountryCount();
+
+                    // update map function
+                    function updateMap() {
+                        // update countryCount
+                        countryCount = getCountryCount();
+
+                        // create color scale
+                        colorScale = d3.scaleSequential()
+                            .domain([0, d3.max(countryCount.values())])
+                            .range(["#3E3B73", "#6863D4"]);
+
+                        // update the map color
+                        geograph_map.selectAll(".country")
+                            .style("fill", d => {
+
+                                if (countryCount.has(d.properties.name)) {
+
+                                    return colorScale(countryCount.get(d.properties.name));
+                                } else {
+
+                                    return '#373737';
+                                }
+                            });
+
+                        // update legend
+                        updateAnnotations();
+                    }
+                    updateMap();
+
+                    // add mouse over tooltip
+                    let mouseoverMesh = geograph_map.append("path")
+                        .attr("class", "mouseover outline")
+                        .style("stroke", "lightgray")
+                        .style("stroke-width", 2)
+                        .attr("d", "");
+
+                    let tooltip = geograph_map.append("g")
+                        .attr("class", "tooltip")
+                        .attr("width", tooltip_width)
+                        .attr("visibility", "hidden");
+
+                    tooltip.append("rect")
+                        .attr("width", 200)
+                        .attr("height", 50)
+
+                    let txt_title = tooltip.append("text")
+                        .attr("text-anchor", "left")
+                        .attr("alignment-baseline", "hanging")
+                        .attr("x", 6)
+                        .attr("y", 8);
+
+                    let txt_count = tooltip.append("text")
+                        .attr("text-anchor", "left")
+                        .attr("alignment-baseline", "hanging")
+                        .attr("x", 6)
+                        .attr("y", 28);
+
+                    function mouseEntersState() {
+
+                        // let tooltip visible
+                        tooltip.style("visibility", "visible");
+                        let country = d3.select(this);
+                        let countryID = country.datum().id;
+                        let countryName = country.datum().properties.name;
+                        let count = countryCount.get(countryName);
+                        txt_title.text(countryName);
+                        if (count) {
+                            txt_count.text("Total: " + count);
+                        } else {
+                            txt_count.text("Total: 0");
+                        }
+
+                        // adjust the tooltip location
+                        tooltip.attr("transform", "translate(" + geograph_margin.left + "," + geograph_margin.top + ")");
+
+                        var mouseover = topojson.mesh(world_map, world_map.objects.countries, function (a, b) { return a.id === countryID || b.id === countryID; });
+                        mouseoverMesh.datum(mouseover).attr("d", path);
+
+                    }
+
+                    function mouseLeavesState() {
+
+                        // hide tooltip
+                        tooltip.style("visibility", "hidden");
+                        let country = d3.select(this);
+
+                        // hide the mouseoverMesh
+                        mouseoverMesh.attr("d", "");
+
+                    }
+
+                    function updateAnnotations() {
+                        let axisScale = d3.scaleLinear()
+                            .domain(colorScale.domain())
+                            .range([geograph_margin.left, geograph_mapWidth - geograph_margin.right]);
+                        bottomAxisMap.scale(axisScale);
+                        bottomAxisG.transition().call(bottomAxisMap);
+                    }
+                    updateAnnotations();
+
+                    // create gradient for the annotation, credit to: https://observablehq.com/@tmcw/d3-scalesequential-continuous-color-legend-example
+                    function createColorGradient() {
+
+                        const defs = geograph.append("defs");
+                        const barHeight = 20;
+
+                        const linearGradient = defs.append("linearGradient")
+                            .attr("id", "linear-gradient");
+
+                        linearGradient.selectAll("stop")
+                            .data(colorScale.ticks().map((t, i, n) => ({ offset: `${100 * i / n.length}%`, color: colorScale(t) })))
+                            .enter().append("stop")
+                            .attr("offset", d => d.offset)
+                            .attr("stop-color", d => d.color);
+
+                        geograph.append('g')
+                            .attr("transform", `translate(0,${geograph_height - geograph_margin.bottom - barHeight})`)
+                            .append("rect")
+                            .attr('transform', `translate(${geograph_margin.left * 2}, 0)`)
+                            .attr("width", geograph_mapWidth - geograph_margin.right - geograph_margin.left)
+                            .attr("height", barHeight)
+                            .style("fill", "url(#linear-gradient)");
+
+
+                    }
+                    createColorGradient();
+
+                }
+                main();
+            }
+
+
+            let filtered_data = [];
+            const render_filtered_viz = function () {
+                console.log("inside render_filtered_viz, full_data", full_data);
+                console.log(pltm_selected, type_selected, cat_selected);
+                filtered_data = full_data.filter(d => {
+                    // console.log(d.platform.toLowerCase());
+                    return (pltm_selected === "" || d.platform.toLowerCase() === pltm_selected) &&
+                        (type_selected === "" || d.type.toLowerCase() === type_selected) &&
+                        (cat_selected.size === 0 || cat_selected.has(d.genre)) &&
+                        (d.release_year >= start_year_selected && d.release_year <= end_year_selected)
+                });
+                // create filtered category list
+                var filtered_categories_set = new Set();
+                for (var i = 0; i < filtered_data.length; i++) {
+                    filtered_categories_set.add(filtered_data[i].genre);
+                }
+                var filtered_categories = Array.from(filtered_categories_set);
+                filtered_categories.sort();
+
+                // update chart
+                year_bar_chart(filtered_data);
+                map_viz(filtered_data);
+                render_categories(filtered_categories);
+            }
+
+        </script>
+    </body>
+
+</html>

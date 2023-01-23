@@ -1,0 +1,314 @@
+<!-- <!DOCTYPE html> -->
+<!-- <html lang="en"> -->
+<html>
+
+    <head>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <script src="https://d3js.org/topojson.v3.min.js"></script>
+        
+        <style>
+            .heading{
+            text-align: center;
+            margin: auto;
+            width: 72%;
+        }
+            #main-age {
+                width: 50%;
+            }
+
+            .axis .domain {
+                display: none;
+            }
+
+            body{
+                font-family: sans-serif;
+                background-color: #222;
+                color: white;
+            }
+
+            #graph1 {
+                fill: white;
+               
+            }
+
+            #graph1 text{
+                fill: white;
+            }
+
+            #graph2 {
+                fill: white;
+            }
+
+            #graph2 text{
+                fill: white;
+            }
+
+
+        </style>
+    </head>
+
+    <body>
+        <div class="heading">
+            <h1>Chapter 02</h1>
+        <h2>Content Quality & Age Distribution Across Platforms</h2>
+        <p>In addition to looking at the popularity, users can further determine their favorite platform according to the content age distribution and content quality by looking at the ratings of the works from platforms.</p>
+        <p>As you can see from the stacked bars below, each streaming service has a different emphasis on different age groups. Prime Video has the most overall ratings of 18+ movies and a significant advantage of 7+ and 13+ movies. However, despite having less content, Disney+ has roughly the same amount of content as Prime Video, with movies for all ages, underscoring Disney's kid-friendly focus. Netflix also has a decent amount of 7+ and 13+ content. Also, from the rating bars image, we can see the distribution of rotten ratings across the four streaming services. From the length of different color bars, Netflix and Prime have the most content with high ratings compared with other platforms. </p>
+        <a href="index.html" style="color: white; margin-right: 30px;">Prev Chapter</a>
+        <a href="page3.html"  style="color: white">Next Chapter</a>
+        </div>
+        <hr />
+        <div style="margin: auto; width: 50%;">
+            <div class="main-age">
+                <p style="text-align: center;">Amount Of Content Per Age Group For Each Platform</p>
+                <svg id='graph1' width="500" height="400"></svg>
+            </div>
+            
+            <div class="main-age">
+                <p style="text-align: center;">Amount Of Content Per Rotten Tomato Rating Group By Platform</p>
+                <svg id='graph2' width="500" height="400"></svg>
+            </div>
+        </div>
+        
+
+        <script class="graph1">
+            const svg1 = d3.select("svg#graph1");
+            const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+            const width = svg1.attr("width") - margin.left - margin.right;
+            const height = svg1.attr("height") - margin.top - margin.bottom;
+            const g1 = svg1.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            // set x scale
+            var x = d3.scaleBand()
+                .rangeRound([0, width])
+                .paddingInner(0.05)
+                .align(0.1);
+
+            // set y scale
+            var y = d3.scaleLinear()
+                .rangeRound([height, 0]);
+
+            // set the colors
+            var z = d3.scaleOrdinal()
+                // .range(["#00BFFF", "#6495ED", "#4169E1", "#2e5468"]); //blue color
+                .range(["#caf270", "#45c490", "#008d93", "#2e5468"]); // tried different colors, but keep the same green color looks beatutiful 
+
+            // load the csv and create the chart
+            d3.csv("data/age_groups.csv", function (d, i, columns) {
+                for (i = 1, t = 0; i < columns.length; ++i) t += d[columns[i]] = +d[columns[i]];
+                d.total = t;
+                return d;
+            }, function (error, data) {
+                if (error) throw error;
+
+                var keys = data.columns.slice(1);
+                console.log(data);
+                console.log(keys);
+
+                data.sort(function (a, b) { return b.total - a.total; });
+                x.domain(data.map(function (d) { return d.Age; }));
+                y.domain([0, d3.max(data, function (d) { return d.total; })]).nice();
+                z.domain(keys);
+
+                g1.append("g")
+                    .selectAll("g")
+                    .data(d3.stack().keys(keys)(data))
+                    .enter().append("g")
+                    .attr("fill", function (d) { return z(d.key); })
+                    .selectAll("rect")
+                    .data(function (d) { return d; })
+                    .enter().append("rect")
+                    .attr("x", function (d) { return x(d.data.Age); })
+                    .attr("y", function (d) { return y(d[1]); })
+                    .attr("height", function (d) { return y(d[0]) - y(d[1]); })
+                    .attr("width", x.bandwidth())
+                    .on("mouseover", function () { tooltip1.style("display", null); })
+                    .on("mouseout", function () { tooltip1.style("display", "none"); })
+                    .on("mousemove", function (d) {
+                        console.log(d);
+                        var xPosition = d3.mouse(this)[0] - 5;
+                        var yPosition = d3.mouse(this)[1] - 5;
+                        tooltip1.attr("transform", "translate(" + xPosition + "," + yPosition + ")");
+                        tooltip1.select("text").text(d[1] - d[0]);
+                    });
+
+                g1.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                g1.append("g")
+                    .attr("class", "axis")
+                    .call(d3.axisLeft(y).ticks(null, "s"))
+                    .append("text")
+                    .attr("x", 2)
+                    .attr("y", y(y.ticks().pop()) + 0.5)
+                    .attr("dy", "0.32em")
+                    .attr("fill", "#000")
+                    .attr("font-weight", "bold")
+                    .attr("text-anchor", "start");
+
+                var legend = g1.append("g")
+                    .attr("font-family", "sans-serif")
+                    .attr("font-size", 10)
+                    .attr("text-anchor", "end")
+                    .selectAll("g")
+                    .data(keys.slice().reverse())
+                    .enter().append("g")
+                    .attr("transform", function (d, i) { return "translate(0," + i * 20 + ")"; });
+
+                legend.append("rect")
+                    .attr("x", width - 19)
+                    .attr("width", 19)
+                    .attr("height", 19)
+                    .attr("fill", z);
+
+                legend.append("text")
+                    .attr("x", width - 24)
+                    .attr("y", 9.5)
+                    .attr("dy", "0.32em")
+                    .text(function (d) { return d; });
+            });
+
+            // Prep the tooltip bits, initial display is hidden
+            var tooltip1 = svg1.append("g")
+                .attr("class", "tooltip")
+                .style("display", "none");
+
+            tooltip1.append("rect")
+                .attr("width", 60)
+                .attr("height", 20)
+                .attr("fill", "white")
+                .style("opacity", 0.5);
+
+            tooltip1.append("text")
+                .attr("x", 30)
+                .attr("dy", "1.2em")
+                .style("text-anchor", "middle")
+                .attr("font-size", "12px")
+                .attr("font-weight", "bold");
+
+        </script>
+
+        <script   class="graph2">
+            const svg2 = d3.select("svg#graph2");
+            //const margin = { top: 20, right: 20, bottom: 30, left:40};
+            //const width = svg2.attr("width") - margin.left - margin.right;
+            //const height = svg2.attr("height") - margin.top - margin.bottom;
+            const g2 = svg2.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            // set x scale
+            var x = d3.scaleBand()
+                .rangeRound([0, width])
+                .paddingInner(0.05)
+                .align(0.1);
+
+            // set y scale
+            var y = d3.scaleLinear()
+                .rangeRound([height, 0]);
+
+            // set the colors
+            var z = d3.scaleOrdinal()
+                // .range(["#caf270", "#45c490", "#008d93", "#2e5468"]);
+
+                .range(["#87CEFA", "#6495ED", "#4169E1", "#4682B4"]); //blue
+
+            // load the csv and create the chart
+            d3.csv("data/rotten_groups.csv", function (d, i, columns) {
+                for (i = 1, t = 0; i < columns.length; ++i) t += d[columns[i]] = +d[columns[i]];
+                d.total = t;
+                return d;
+            }, function (error, data) {
+                if (error) throw error;
+
+                var keys = data.columns.slice(1);
+                console.log(data);
+                console.log(keys);
+
+                //data.sort(function(a, b) { return b.total - a.total; });
+                x.domain(data.map(function (d) { return d.score_group; }));
+                y.domain([0, d3.max(data, function (d) { return d.total; })]).nice();
+                z.domain(keys);
+
+                g2.append("g")
+                    .selectAll("g")
+                    .data(d3.stack().keys(keys)(data))
+                    .enter().append("g")
+                    .attr("fill", function (d) { return z(d.key); })
+                    .selectAll("rect")
+                    .data(function (d) { return d; })
+                    .enter().append("rect")
+                    .attr("x", function (d) { return x(d.data.score_group); })
+                    .attr("y", function (d) { return y(d[1]); })
+                    .attr("height", function (d) { return y(d[0]) - y(d[1]); })
+                    .attr("width", x.bandwidth())
+                    .on("mouseover", function () { tooltip2.style("display", null); })
+                    .on("mouseout", function () { tooltip2.style("display", "none"); })
+                    .on("mousemove", function (d) {
+                        console.log(d);
+                        var xPosition = d3.mouse(this)[0] - 5;
+                        var yPosition = d3.mouse(this)[1] - 5;
+                        tooltip2.attr("transform", "translate(" + xPosition + "," + yPosition + ")");
+                        tooltip2.select("text")
+                            .text(d[1] - d[0]);
+                    });
+
+                g2.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                g2.append("g")
+                    .attr("class", "axis")
+                    .call(d3.axisLeft(y).ticks(null, "s"))
+                    .append("text")
+                    .attr("x", 2)
+                    .attr("y", y(y.ticks().pop()) + 0.5)
+                    .attr("dy", "0.32em")
+                    .attr("fill", "#000")
+                    .attr("font-weight", "bold")
+                    .attr("text-anchor", "start");
+
+                var legend = g2.append("g")
+                    .attr("font-family", "sans-serif")
+                    .attr("font-size", 10)
+                    .attr("text-anchor", "end")
+                    .selectAll("g")
+                    .data(keys.slice().reverse())
+                    .enter().append("g")
+                    .attr("transform", function (d, i) { return "translate(0," + i * 20 + ")"; });
+
+                legend.append("rect")
+                    .attr("x", width - 19)
+                    .attr("width", 19)
+                    .attr("height", 19)
+                    .attr("fill", z);
+
+                legend.append("text")
+                    .attr("x", width - 24)
+                    .attr("y", 9.5)
+                    .attr("dy", "0.32em")
+                    .text(function (d) { return d; });
+            });
+
+            // Prep the tooltip bits, initial display is hidden
+            var tooltip2 = svg2.append("g")
+                .attr("class", "tooltip")
+                .style("display", "none");
+
+            tooltip2.append("rect")
+                .attr("width", 60)
+                .attr("height", 20)
+                .attr("fill", "white")
+                .style("opacity", 0.5);
+
+            tooltip2.append("text")
+                .attr("x", 30)
+                .attr("dy", "1.2em")
+                .style("text-anchor", "middle")
+                .attr("font-size", "12px")
+                .attr("font-weight", "bold");
+        </script>
+
+    </body>
+
+</html>
